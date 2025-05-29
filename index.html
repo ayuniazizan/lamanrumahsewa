@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Maklum Balas Rumah Sewa</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background-color: #f4f4f4;
+    }
+    h1 {
+      text-align: center;
+    }
+    form {
+      background: #fff;
+      padding: 20px;
+      margin-bottom: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    textarea, input[type="number"] {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+    button {
+      background: #007BFF;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    #feedbackItems li {
+      background: #fff;
+      padding: 15px;
+      border-radius: 10px;
+      margin-bottom: 10px;
+      box-shadow: 0 0 5px rgba(0,0,0,0.05);
+    }
+    .stars {
+      color: gold;
+      font-size: 20px;
+    }
+    .timestamp {
+      font-size: 12px;
+      color: gray;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Maklum Balas Rumah Sewa</h1>
+
+  <form id="feedbackForm">
+    <label for="feedbackInput">Maklum balas anda:</label>
+    <textarea id="feedbackInput" rows="4" required></textarea>
+
+    <label for="ratingInput">Bintang (1–5):</label>
+    <input type="number" id="ratingInput" min="1" max="5" required>
+
+    <button type="submit">Hantar Maklum Balas</button>
+  </form>
+
+  <div id="feedbackStats">Tiada maklum balas lagi.</div>
+  <ul id="feedbackItems"></ul>
+
+  <script>
+    const perkataanKasar = ["bodoh", "bangang", "sial", "celaka", "babi", "setan", "anjing"];
+    let jumlahFeedback = 0;
+    let jumlahBintang = 0;
+
+    const googleScriptURL = "https://script.google.com/macros/s/PASTE_URL_DI_SINI/exec"; // Ganti dengan URL anda
+
+    function tapisPerkataanKasar(teks) {
+      const regex = new RegExp(perkataanKasar.join("|"), "gi");
+      return teks.replace(regex, match => "*".repeat(match.length));
+    }
+
+    function kiraPurataBintang() {
+      if (jumlahFeedback === 0) return 0;
+      return (jumlahBintang / jumlahFeedback).toFixed(1);
+    }
+
+    function updateStatistik() {
+      const stats = document.getElementById('feedbackStats');
+      if (jumlahFeedback === 0) {
+        stats.textContent = "Tiada maklum balas lagi.";
+      } else {
+        stats.textContent = `Jumlah maklum balas: ${jumlahFeedback} | Purata bintang: ${kiraPurataBintang()} ★`;
+      }
+    }
+
+    function buatBintangHTML(bintang) {
+      return "★".repeat(bintang) + "☆".repeat(5 - bintang);
+    }
+
+    document.getElementById('feedbackForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+
+      const feedbackInput = document.getElementById('feedbackInput');
+      const ratingInput = document.getElementById('ratingInput');
+
+      let teks = feedbackInput.value.trim();
+      let bintang = parseInt(ratingInput.value);
+
+      if (!teks || !bintang) return;
+
+      teks = tapisPerkataanKasar(teks);
+
+      const now = new Date();
+      const timestamp = now.toLocaleString('ms-MY', {
+        dateStyle: 'long',
+        timeStyle: 'short'
+      });
+
+      const li = document.createElement('li');
+      li.innerHTML = `
+        <div class="stars">${buatBintangHTML(bintang)}</div>
+        <div>${teks}</div>
+        <div class="timestamp">Dihantar pada: ${timestamp}</div>
+      `;
+      document.getElementById('feedbackItems').prepend(li);
+
+      jumlahFeedback++;
+      jumlahBintang += bintang;
+      updateStatistik();
+
+      fetch(googleScriptURL, {
+        method: 'POST',
+        body: JSON.stringify({
+          feedback: teks,
+          rating: bintang
+        }),
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }).then(response => response.json())
+        .then(data => console.log("Disimpan ke Google Sheets:", data));
+
+      feedbackInput.value = "";
+      ratingInput.value = "";
+    });
+  </script>
+
+</body>
+</html>
